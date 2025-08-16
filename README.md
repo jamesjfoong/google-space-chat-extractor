@@ -1,83 +1,182 @@
 # Google Space Chat Extractor
 
-## Usage
+A Google Apps Script tool for extracting and analyzing chat messages from Google Chat spaces. Perfect for team communication analysis, meeting summaries, and project documentation.
 
-Extracting Chat Messages
+## ✨ Features
 
-1. Click Chat Extractor > Extract Chats in the spreadsheet menu
-2. In the dialog that appears:
-   - Choose a start date and end date for message extraction
+- **📥 Message Extraction**: Extract messages from any Google Chat space with date range filtering
+- **🧵 Thread Organization**: Automatically identifies and organizes thread starters and replies
+- **👥 Multi-User Support**: Concurrent user sessions with isolated data processing
+- **📊 CSV Export**: One-click export to CSV format for further analysis
+- **🔗 Direct Links**: Clickable links to original messages in Google Chat
+- **📈 Progress Tracking**: Real-time status updates during extraction
+- **🎨 Formatted Output**: Color-coded spreadsheet with conditional formatting
+- **⚡ Unlimited Messages**: No artificial limits on message extraction
+
+## 🛠️ Installation
+
+### Prerequisites
+- Google Workspace account with access to Google Chat
+- Google Sheets access
+- Permissions to create Google Apps Script projects
+
+### Setup Instructions
+
+1. **Create a new Google Sheets document**
+2. **Open Apps Script Editor**:
+   - Go to `Extensions` → `Apps Script`
+3. **Replace the default code**:
+   - Delete the existing `Code.gs` content
+   - Copy and paste the entire `code.gs` file from this repository
+4. **Enable Required APIs**:
+   - In Apps Script, go to `Services` (+ icon)
+   - Add: `Google Chat API`
+   - Add: `People API` (optional, for better name resolution)
+   - Add: `Admin SDK API` (optional, for organization users)
+5. **Save and Deploy**:
+   - Save the project (`Ctrl+S`)
+   - Refresh your Google Sheets document
+   - You should see a new "Chat Extractor" menu
+
+## 📖 Usage
+
+### Extracting Chat Messages
+
+1. **Open the Extractor**:
+   - Click `Chat Extractor` → `Extract Chats` in the spreadsheet menu
+
+2. **Configure Extraction**:
+   - Select the Google Chat space from the dropdown
+   - Choose start and end dates for message extraction
    - Click "Extract Chats"
-3. The extraction process will begin with progress updates shown in the dialog
-4. When complete, a new sheet will be created with all extracted messages
 
-## Exporting as CSV
+3. **Monitor Progress**:
+   - The extraction process shows real-time progress updates
+   - Large extractions may take several minutes
 
-After extraction completes:
+4. **Review Results**:
+   - A new sheet will be created with all extracted messages
+   - Messages are organized by thread and chronologically sorted
 
-1. Click the "Copy as CSV" button in the dialog
-2. The CSV data will be copied to your clipboard
+### Exporting as CSV
 
-"Prompt Template:
+1. **After extraction completes**:
+   - Click the "Copy as CSV" button in the dialog
+   - The CSV data will be copied to your clipboard
 
-**Context:**
-You are a professional summarizer working with the CATAPA HRIS development team.
-Your task is to create a structured, comprehensive summary of the team discussions that took place during a specific week. The content for summarization will be provided in the attached text file containing chat messages from the team's communication space.
+2. **Use the data**:
+   - Paste into any text editor, Excel, or data analysis tool
+   - Perfect for feeding into AI summarization tools
 
-**Your task:**
+## 📊 Data Structure
 
-1. Carefully analyze all chat messages in the provided text file.
-2. Identify key discussion points, decisions, action items, and unresolved issues.
-3. Create a well-organized summary using a exact style shown below. Use normal heading only.
-4. There could be multiple threads in a space, please refer to Thread ID.
-5. Highlight any critical issues or blockers that require immediate attention.
-6. Keep the summary professional, clear, and easily scannable.
-7. Maintain an objective tone throughout.
+The extracted data includes these columns:
 
-**Team overview:**
+| Column | Description |
+|--------|-------------|
+| **Space Name** | Name of the Google Chat space |
+| **Thread ID** | Unique identifier for the message thread |
+| **Sender Name** | Display name of the message sender |
+| **Message Text** | The actual message content |
+| **Message Time** | Timestamp when the message was sent |
+| **Message URL** | Direct link to view the message in Google Chat |
+| **Message Type** | Thread Starter, Reply, or Direct Message |
+| **In Time Range** | Whether the message falls within your selected date range |
 
-- Team Responsibility: <brief description of your team’s scope>
-- Team Structure:
-  - PM:** <Name>
-  - Front-end SDE: <Name>
-  - Back-end SDE: <Name>
-  - UX Designer: <Name>
-  - QA Engineer: <Name>
+## 🤖 AI Summarization
 
-**Output format:**
+### Recommended Workflow
 
-1. **<Topic Title 1>** – <Brief subtitle if any>
-    1. <Summary 1-1>
-    2. <Summary 1-2>
-2. **<Topic Title 2>** – <Brief subtitle if any>
-    1. <Summary 2-1>"
+1. **Extract messages** using this tool
+2. **Copy as CSV** to get the raw data
+3. **Feed to AI tools** like ChatGPT, Claude, or Gemini with the prompt template below
 
-## Spreadsheet Structure
+### Sample Prompt Template
 
-The extracted data is organized with the following columns:
-Space Name: Name of the Chat space
-Thread ID: Identifier for the message thread
-Sender Name: Display name of the message sender
-Message Text: The content of the message
-Message Time: Timestamp when the message was sent
-Message URL: Direct link to view the message in Google Chat
-Message Type: Indicates if the message is a thread starter or reply
-In Time Range: Notes whether the message falls within your selected date range
+```
+You are a professional summarizer analyzing team communication data.
 
-## References
+**Context:** 
+Analyze the attached CSV data containing chat messages from our team's Google Chat space.
 
-Weekly Report: CATAPA Discussion at Google Chat Template
+**Task:**
+1. Identify key discussion points, decisions, and action items
+2. Organize by topics and threads
+3. Highlight any critical issues or blockers
+4. Maintain a professional, objective tone
 
-## Troubleshooting
+**Output Format:**
+- **Issues** (if any critical problems identified)
+- **Decisions** (key choices made by the team)
+- **Action Items** (tasks assigned with owners and deadlines)
+- **Discussion Topics** (main conversation themes)
+- **Achievements** (completed work and milestones)
 
-If the chat extractor modal doesn't appear, it’s usually due to not granting all the required permissions during the initial prompt. Please follow these steps:
+Please provide a structured summary that any team member can reference to understand the current project status and next steps.
+```
 
-1. Go to <https://myaccount.google.com/connections>.
-2. Look for CATAPA Infra and click Remove all access.
-3. Then, try using the chat extractor again.
+## 🔧 Advanced Configuration
 
-If you believe you’ve already granted all permissions but it's still not working, it
-could be due to a browser extension. Try the following:
+### Customizing Date Ranges
+- Default: Last 7 days
+- Maximum: No limit (but consider Google Apps Script execution time limits)
+- Tip: For very large extractions, use smaller date ranges
 
-1. Open this spreadsheet in Incognito/Private mode.
-2. Or try using a different browser.
+### Handling Large Datasets
+- The tool automatically handles pagination
+- No message limits (previous 1000 message limit removed)
+- For spaces with 10,000+ messages, consider splitting by date ranges
+
+### Multi-User Environments
+- Each user gets an isolated session
+- No interference between concurrent extractions
+- Unique sheet names prevent conflicts
+
+## 🐛 Troubleshooting
+
+### Permission Issues
+If the chat extractor modal doesn't appear:
+
+1. **Reset Google Account Connections**:
+   - Go to [Google Account Connections](https://myaccount.google.com/connections)
+   - Find your Apps Script project and remove access
+   - Try the extractor again and re-grant permissions
+
+2. **Browser Issues**:
+   - Try in Incognito/Private mode
+   - Disable browser extensions temporarily
+   - Use a different browser
+
+### API Errors
+- **"Repository not found"**: Check Google Chat API is enabled
+- **Rate limiting**: Wait a few minutes and try again
+- **Timeout errors**: Use smaller date ranges for large spaces
+
+### Performance Issues
+- **Slow extraction**: Normal for large datasets (1000+ messages)
+- **Memory errors**: Restart the extraction with smaller date ranges
+- **Execution timeout**: Google Apps Script has 6-minute limits for large operations
+
+## 🤝 Contributing
+
+Contributions are welcome! Areas for improvement:
+
+- **Rate limiting**: Add delays between API calls
+- **Retry logic**: Automatic retry for failed requests
+- **Batch processing**: Handle very large datasets more efficiently
+- **Export formats**: Add JSON, Excel export options
+- **Filtering**: Add sender, keyword, or content type filters
+
+## 📄 License
+
+This project is open source. Feel free to modify and distribute.
+
+## 🔗 References
+
+- [Google Chat API Documentation](https://developers.google.com/chat/api)
+- [Google Apps Script Documentation](https://developers.google.com/apps-script)
+- [Google Sheets API](https://developers.google.com/sheets/api)
+
+---
+
+**Made for team communication analysis and project documentation** 📈

@@ -1,0 +1,28 @@
+# Google Apps Script
+.clasp.json
+.clasprc.json
+
+# Node modules (if using clasp)
+node_modules/
+package-lock.json
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Backup files
+*.bak
+*~
