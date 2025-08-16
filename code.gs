@@ -189,8 +189,16 @@ function showExtractDialog() {
     </div>
 
     <div id="copyButtons" style="margin-top: 15px; display: none;">
-      <button id="copyCSVButton" onclick="copyAsCSV()">Copy as CSV</button>
-      <span id="copySuccess" class="success-message">Copied to clipboard!</span>
+      <div class="form-group">
+        <label for="exportFormat">Export Format:</label>
+        <select id="exportFormat">
+          <option value="csv">CSV (Clipboard)</option>
+          <option value="json">JSON (Clipboard)</option>
+          <option value="xlsx">Excel (Google Drive)</option>
+        </select>
+      </div>
+      <button id="exportButton" onclick="exportData()">Export Data</button>
+      <span id="exportSuccess" class="success-message">Export completed!</span>
     </div>
 
     <div id="copyLoadingIndicator" class="copy-loading">
@@ -285,54 +293,90 @@ function showExtractDialog() {
           .extractChats(spaceId, startDate, endDate, sessionId);
       }
 
-      function copyAsCSV() {
-        // Disable copy button and show loading
-        document.getElementById('copyCSVButton').disabled = true;
-        document.getElementById('copySuccess').style.display = 'none';
+      function exportData() {
+        const format = document.getElementById('exportFormat').value;
+
+        // Disable export button and show loading
+        document.getElementById('exportButton').disabled = true;
+        document.getElementById('exportSuccess').style.display = 'none';
         document.getElementById('copyLoadingIndicator').style.display = 'block';
 
-        google.script.run
-          .withSuccessHandler(function(csvData) {
-            // Hide loading and re-enable button
-            document.getElementById('copyCSVButton').disabled = false;
-            document.getElementById('copyLoadingIndicator').style.display = 'none';
+        if (format === 'xlsx') {
+          // Handle Excel export to Google Drive
+          google.script.run
+            .withSuccessHandler(function(result) {
+              // Hide loading and re-enable button
+              document.getElementById('exportButton').disabled = false;
+              document.getElementById('copyLoadingIndicator').style.display = 'none';
 
-            // Create a temporary textarea element to copy from
-            const textarea = document.createElement('textarea');
-            textarea.value = csvData;
-            textarea.style.position = 'fixed';  // Prevent scrolling to bottom
-            document.body.appendChild(textarea);
-            textarea.select();
+              if (result.success) {
+                // Show success message with link
+                document.getElementById('exportSuccess').innerHTML =
+                  'Excel file created! <a href="' + result.url + '" target="_blank">Open in Google Sheets</a>';
+                document.getElementById('exportSuccess').style.display = 'inline';
 
-            try {
-              // Try to use the execCommand approach which works in most browsers
-              const successful = document.execCommand('copy');
-              if (successful) {
-                // Show success message
-                document.getElementById('copySuccess').style.display = 'inline';
-
-                // Hide success message after 3 seconds
+                // Hide success message after 10 seconds
                 setTimeout(function() {
-                  document.getElementById('copySuccess').style.display = 'none';
-                }, 3000);
+                  document.getElementById('exportSuccess').style.display = 'none';
+                }, 10000);
               } else {
-                throw new Error('Copy command was unsuccessful');
+                alert('Error creating Excel file: ' + result.error);
               }
-            } catch (err) {
-              // If clipboard copy fails, show a dialog with the CSV data
-              google.script.run.showCSVDialog(csvData);
-            } finally {
-              // Clean up
-              document.body.removeChild(textarea);
-            }
-          })
-          .withFailureHandler(function(error) {
-            // Hide loading and re-enable button
-            document.getElementById('copyCSVButton').disabled = false;
-            document.getElementById('copyLoadingIndicator').style.display = 'none';
-            alert('Error generating CSV: ' + error);
-          })
-          .getExtractedDataAsCSV(sessionId);
+            })
+            .withFailureHandler(function(error) {
+              // Hide loading and re-enable button
+              document.getElementById('exportButton').disabled = false;
+              document.getElementById('copyLoadingIndicator').style.display = 'none';
+              alert('Error exporting to Excel: ' + error);
+            })
+            .getExtractedData('xlsx', sessionId);
+        } else {
+          // Handle CSV and JSON export to clipboard
+          google.script.run
+            .withSuccessHandler(function(data) {
+              // Hide loading and re-enable button
+              document.getElementById('exportButton').disabled = false;
+              document.getElementById('copyLoadingIndicator').style.display = 'none';
+
+              // Create a temporary textarea element to copy from
+              const textarea = document.createElement('textarea');
+              textarea.value = data;
+              textarea.style.position = 'fixed';  // Prevent scrolling to bottom
+              document.body.appendChild(textarea);
+              textarea.select();
+
+              try {
+                // Try to use the execCommand approach which works in most browsers
+                const successful = document.execCommand('copy');
+                if (successful) {
+                  // Show success message
+                  const formatName = format.toUpperCase();
+                  document.getElementById('exportSuccess').textContent = formatName + ' copied to clipboard!';
+                  document.getElementById('exportSuccess').style.display = 'inline';
+
+                  // Hide success message after 3 seconds
+                  setTimeout(function() {
+                    document.getElementById('exportSuccess').style.display = 'none';
+                  }, 3000);
+                } else {
+                  throw new Error('Copy command was unsuccessful');
+                }
+              } catch (err) {
+                // If clipboard copy fails, show a dialog with the data
+                google.script.run.showDataDialog(data, format);
+              } finally {
+                // Clean up
+                document.body.removeChild(textarea);
+              }
+            })
+            .withFailureHandler(function(error) {
+              // Hide loading and re-enable button
+              document.getElementById('exportButton').disabled = false;
+              document.getElementById('copyLoadingIndicator').style.display = 'none';
+              alert('Error generating ' + format.toUpperCase() + ': ' + error);
+            })
+            .getExtractedData(format, sessionId);
+        }
       }
     </script>
   `
@@ -351,10 +395,11 @@ function showExtractDialog() {
 }
 
 /**
- * Show CSV data in a dialog if clipboard API fails
- * @param {string} csvData - The CSV data to display
+ * Show data in a dialog if clipboard API fails
+ * @param {string} data - The data to display
+ * @param {string} format - The format type (csv, json, etc.)
  */
-function showCSVDialog(csvData) {
+function showDataDialog(data, format = "csv") {
   const html = HtmlService.createHtmlOutput(
     `
     <style>
@@ -378,14 +423,14 @@ function showCSVDialog(csvData) {
         cursor: pointer;
       }
     </style>
-    <h3>Copy the CSV data below</h3>
-    <textarea id="csvContent">${csvData
+    <h3>Copy the ${format.toUpperCase()} data below</h3>
+    <textarea id="dataContent">${data
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")}</textarea>
     <button onclick="copyTextarea()">Copy to Clipboard</button>
     <script>
       function copyTextarea() {
-        const textarea = document.getElementById('csvContent');
+        const textarea = document.getElementById('dataContent');
         textarea.select();
         document.execCommand('copy');
         alert('Copied to clipboard!');
@@ -395,9 +440,9 @@ function showCSVDialog(csvData) {
   )
     .setWidth(600)
     .setHeight(400)
-    .setTitle("CSV Data");
+    .setTitle(`${format.toUpperCase()} Data`);
 
-  SpreadsheetApp.getUi().showModalDialog(html, "CSV Data");
+  SpreadsheetApp.getUi().showModalDialog(html, `${format.toUpperCase()} Data`);
 }
 
 /**
@@ -501,6 +546,232 @@ function getExtractedDataAsCSV(sessionId = "default") {
   } catch (e) {
     Logger.log("Error generating CSV: " + e.toString());
     throw "Failed to generate CSV: " + e.message;
+  }
+}
+
+/**
+ * Export format constants
+ */
+const EXPORT_FORMATS = {
+  CSV: "csv",
+  JSON: "json",
+  EXCEL: "xlsx",
+};
+
+/**
+ * Get the extracted data in JSON format with structured threading
+ * @param {string} sessionId - Session ID to get the correct sheet
+ * @return {string} JSON formatted string of the data
+ */
+function getExtractedDataAsJSON(sessionId = "default") {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    // Get the name of the last extracted sheet from properties for this session
+    const lastSheetName = PropertiesService.getScriptProperties().getProperty(
+      `LAST_EXTRACTED_SHEET_${sessionId}`
+    );
+
+    let sheet;
+    if (lastSheetName) {
+      sheet = ss.getSheetByName(lastSheetName);
+    }
+
+    // If we couldn't find the sheet by name, fall back to using the active sheet
+    if (!sheet) {
+      sheet = ss.getActiveSheet();
+    }
+
+    // Get all data from the sheet
+    const data = sheet.getDataRange().getValues();
+
+    if (data.length <= 1) {
+      return JSON.stringify({ error: "No data found" });
+    }
+
+    // Get headers
+    const headers = data[0];
+    const rows = data.slice(1);
+
+    // Structure data with threading
+    const result = {
+      metadata: {
+        extractedAt: new Date().toISOString(),
+        totalMessages: rows.length,
+        sessionId: sessionId,
+        spaceName: rows.length > 0 ? rows[0][0] : "Unknown",
+      },
+      threads: {},
+      directMessages: [],
+      summary: {
+        messageTypes: {},
+        senders: {},
+        dateRange: {
+          earliest: null,
+          latest: null,
+        },
+      },
+    };
+
+    // Process each row
+    rows.forEach((row) => {
+      const messageData = {
+        spaceName: row[0],
+        threadId: row[1],
+        senderName: row[2],
+        messageText: row[3],
+        messageTime: row[4],
+        messageUrl: row[5],
+        messageType: row[6],
+        inTimeRange: row[7],
+      };
+
+      // Update summary statistics
+      result.summary.messageTypes[messageData.messageType] =
+        (result.summary.messageTypes[messageData.messageType] || 0) + 1;
+
+      result.summary.senders[messageData.senderName] =
+        (result.summary.senders[messageData.senderName] || 0) + 1;
+
+      // Track date range
+      const messageDate = new Date(messageData.messageTime);
+      if (
+        !result.summary.dateRange.earliest ||
+        messageDate < new Date(result.summary.dateRange.earliest)
+      ) {
+        result.summary.dateRange.earliest = messageData.messageTime;
+      }
+      if (
+        !result.summary.dateRange.latest ||
+        messageDate > new Date(result.summary.dateRange.latest)
+      ) {
+        result.summary.dateRange.latest = messageData.messageTime;
+      }
+
+      // Organize by threads
+      if (messageData.threadId && messageData.threadId !== "N/A") {
+        if (!result.threads[messageData.threadId]) {
+          result.threads[messageData.threadId] = {
+            threadId: messageData.threadId,
+            messages: [],
+            participants: new Set(),
+            messageCount: 0,
+            threadStarter: null,
+          };
+        }
+
+        result.threads[messageData.threadId].messages.push(messageData);
+        result.threads[messageData.threadId].participants.add(
+          messageData.senderName
+        );
+        result.threads[messageData.threadId].messageCount++;
+
+        // Identify thread starter
+        if (messageData.messageType === "Thread Starter") {
+          result.threads[messageData.threadId].threadStarter = messageData;
+        }
+      } else {
+        // Direct messages
+        result.directMessages.push(messageData);
+      }
+    });
+
+    // Convert Sets to Arrays for JSON serialization
+    Object.keys(result.threads).forEach((threadId) => {
+      result.threads[threadId].participants = Array.from(
+        result.threads[threadId].participants
+      );
+    });
+
+    return JSON.stringify(result, null, 2);
+  } catch (e) {
+    Logger.log("Error generating JSON: " + e.toString());
+    return JSON.stringify({ error: "Failed to generate JSON: " + e.message });
+  }
+}
+
+/**
+ * Get the extracted data and create an Excel file in Google Drive
+ * @param {string} sessionId - Session ID to get the correct sheet
+ * @return {Object} Result with Drive file URL or error
+ */
+function exportToGoogleDrive(sessionId = "default", format = "xlsx") {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    // Get the name of the last extracted sheet from properties for this session
+    const lastSheetName = PropertiesService.getScriptProperties().getProperty(
+      `LAST_EXTRACTED_SHEET_${sessionId}`
+    );
+
+    let sheet;
+    if (lastSheetName) {
+      sheet = ss.getSheetByName(lastSheetName);
+    }
+
+    if (!sheet) {
+      sheet = ss.getActiveSheet();
+    }
+
+    // Create a new spreadsheet for export
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, "-");
+    const fileName = `Chat_Export_${timestamp}`;
+
+    // Create new spreadsheet
+    const newSpreadsheet = SpreadsheetApp.create(fileName);
+    const newSheet = newSpreadsheet.getActiveSheet();
+
+    // Copy data
+    const data = sheet.getDataRange().getValues();
+    if (data.length > 0) {
+      newSheet.getRange(1, 1, data.length, data[0].length).setValues(data);
+
+      // Apply formatting
+      const headerRange = newSheet.getRange(1, 1, 1, data[0].length);
+      headerRange.setFontWeight("bold").setBackground("#f1f3f4");
+
+      // Auto-resize columns
+      newSheet.autoResizeColumns(1, data[0].length);
+    }
+
+    // Get the file and move it to a specific folder (optional)
+    const file = DriveApp.getFileById(newSpreadsheet.getId());
+
+    return {
+      success: true,
+      fileId: newSpreadsheet.getId(),
+      fileName: fileName,
+      url: newSpreadsheet.getUrl(),
+      message: `Excel file created successfully: ${fileName}`,
+    };
+  } catch (e) {
+    Logger.log("Error exporting to Drive: " + e.toString());
+    return {
+      success: false,
+      error: "Failed to export to Google Drive: " + e.message,
+    };
+  }
+}
+
+/**
+ * Get extracted data in the specified format
+ * @param {string} format - Export format (csv, json, xlsx)
+ * @param {string} sessionId - Session ID to get the correct sheet
+ * @return {string|Object} Formatted data or result object
+ */
+function getExtractedData(format = "csv", sessionId = "default") {
+  switch (format.toLowerCase()) {
+    case EXPORT_FORMATS.CSV:
+      return getExtractedDataAsCSV(sessionId);
+
+    case EXPORT_FORMATS.JSON:
+      return getExtractedDataAsJSON(sessionId);
+
+    case EXPORT_FORMATS.EXCEL:
+      return exportToGoogleDrive(sessionId, "xlsx");
+
+    default:
+      return getExtractedDataAsCSV(sessionId);
   }
 }
 

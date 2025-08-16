@@ -13,6 +13,28 @@ All notable changes to the Google Space Chat Extractor will be documented in thi
 - Improved documentation structure
 - Enhanced troubleshooting section
 
+## [1.2.0] - 2024-08-16
+
+### Added
+- **🎉 Multiple Export Formats**: CSV, JSON, and Excel export options
+- **📊 JSON Export**: Rich structured format with thread organization and metadata
+- **☁️ Excel Export**: Professional formatted spreadsheets saved to Google Drive
+- **🔗 Google Drive Integration**: Direct file saving with shareable links
+- **📈 Enhanced Data Structure**: JSON format includes statistics and analytics
+- **🎨 Improved UI**: Export format selection dropdown in dialog
+
+### Changed
+- **Enhanced Export Dialog**: Replaced single CSV button with format selection
+- **Better Data Organization**: JSON format structures threads and provides summaries
+- **Professional Output**: Excel exports include formatting and hyperlinks
+
+### Technical Improvements
+- Added `getExtractedDataAsJSON()` function for structured data export
+- Added `exportToGoogleDrive()` function for Excel file creation
+- Added `getExtractedData()` unified export function
+- Updated dialog UI with export format selection
+- Enhanced error handling for different export formats
+
 ## [1.1.0] - 2024-08-16
 
 ### Added
